@@ -92,19 +92,16 @@ By enforcing macro-balancing, the model moved away from its majority-class bias,
 ## 📋 Task 6: Documentation and Reporting
 
 ### 6.1 Visual Audit Evidence
-All supporting dashboard visualizations have been captured directly from Azure Machine Learning Studio and archived in the local repository structure:
 
 #### Upstream Data Ingestion Starvation Profile
-Exposes the 79.98% missingness barrier across key demographic tracking features:
 ![Upstream Missingness Profile](images/Race_Ethnicity.jpg)
 
 #### Baseline Multi-Class Target Distribution
-Illustrates the heavy structural class clustering around mid-tier level 3:
 ![Target Distribution Disparity](images/triage_level_profile.png)
 
 #### Technical Data Dictionary Preview
-Highlights the trailing layout extraction anomalies (`Column27`):
 ![Data Schema Preview](images/dataset_schema_preview.png)
+
 
 ### 6.2 Governance & Post-Deployment Monitoring Roadmap
 1. **Mandatory Human-in-the-Loop Override:** The automated triage placement must act solely as secondary decision support. Clinicians retain absolute authority to override scores.
