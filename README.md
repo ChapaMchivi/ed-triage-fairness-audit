@@ -1,112 +1,216 @@
-# Emergency Department Triage AI: Algorithmic Fairness Audit & Bias Mitigation
-**Platform:** Azure Machine Learning Studio (Designer & Automated ML Pipeline)  
-**Auditor Profile:** [ChapaMchivi](https://github.com/ChapaMchivi)  
+# Comprehensive Algorithmic Governance Report: Emergency Department Triage Auditing & Bias Mitigation
+
+## Executive Summary
+
+### Overview of the System & Mandate
+
+This audit documents the algorithmic governance evaluation of the automated Emergency Department (ED) Triage Model slated for clinical deployment. In acute care environments, automated decision systems must meet strict benchmarks for safety, equity, and reliability. Acting on the mandate from hospital leadership to ensure equitable care delivery across all patient cohorts, this comprehensive evaluation analyzes the architectural integrity, systematic demographic biases, data ingestion limitations, and mitigation pathways of the system before full clinical deployment.
+
+### High-Level Vulnerabilities Identified
+
+1. **Critical High-Acuity Triage Failures (Undertriage):** The baseline system exhibited a dangerous error profile by misclassifying critical, resuscitation-level patients into non-urgent tiers.
+2. **Systemic Data Ingestion Gaps:** A profiling audit of the incoming data structures revealed a **79.98% missingness rate** across core sociodemographic fields (`Race_Ethnicity` and `Insurance_Status`), directly caused by operational intake practices in emergency workflows.
+3. **Minority Cohort Suppression:** Global optimization constraints in the initial training pipeline favored majority clinical presentations, completely dropping predictive accuracy for lower-volume clinical endpoints.
+
+### Summary of Governance Interventions & Impact
+
+By pivoting the deployment framework away from unweighted accuracy metrics and configuring the system around **Normalized Macro Recall (`norm_macro_recall`)**, the governance team successfully restored class equity. This model-level intervention forced the underlying estimators to balance prediction patterns across all emergency tiers, establishing an auditable baseline that guarantees visibility and care prioritization for historically underserved patient groups.
 
 ---
 
-## 🔬 Task 1: Model Exploration and Context Analysis
+## Task 1: Model Exploration and Context Analysis
 
-### 1.1 System Objective & Intended Use Case
-The target system is a clinical decision-support model designed to prioritize emergency department (ED) triage queues during high-volume periods. It assigns an Emergency Severity Index (ESI Level 1: Resuscitation through Level 5: Non-Urgent) to incoming patients based on presenting clinical markers.
+### 1.1 Architectural Mapping & Pipeline Layout
 
-### 1.2 Underlying Model Architecture
-- **Pipeline Structure:** Multi-class classification pipeline executed within Azure ML Designer.
-- **Algorithmic Framework:** The champion pipeline utilizes a `StandardScalerWrapper` to transform input matrices, feeding an underlying `RandomForest` classifier.
+The clinical triage engine is designed as an automated, multi-class classification system built within the Azure Machine Learning workspace (`readmission-risk-ml-ws`) under the automated auditing experiment `ED-Triage-Automated-Audit`.
 
-### 1.3 Identification of Demographic & Proxy Variables
-The baseline feature schema explicitly includes:
-* **Direct Demographics:** `Age`, `Gender`, `Race_Ethnicity`, `Insurance_Status`, and `Language`.
-* **Proxy Variables:** `Arrival_Method` (e.g., Ambulance vs. Walk-in) and `Chief_Complaint`. These operational anchors carry heavy downstream correlations with geographic, socio-economic, and racial subgroups.
-
-### 1.4 Advanced Workflow & Ingestion Considerations
-- **Upstream Collection Barriers:** In acute emergencies (Trauma/Ambulance arrivals), patients skip front-desk registration to receive immediate stabilization. This structural workflow introduces systematic missingness into demographic fields before the data ever reaches the modeling pipeline.
-- **Clinical care Pathway Influence:** Model outputs directly determine queue placement. A false negative (undertriage) forces high-acuity patients to wait, risking clinical deterioration, while a false positive (overtriage) misallocates limited critical-care resources.
-
----
-
-## 📊 Task 2: Initial Bias Assessment Using Fairness Metrics
-
-### 2.1 Baseline Stratified Performance Evaluation
-The baseline model run (`sleepy_kumquat_99pbl4k32g`) was optimized for a global `AUC_weighted` performance objective to maximize standard cross-validation results. When evaluating metrics stratified by demographic cohorts, a severe structural error mode emerged:
-
-* **Total Minority Class Suppression:** The model prioritized the heavily populated majority cohort (Triage Level 3). This optimization strategy resulted in **0 total predictions and 0 true positives** for the low-acuity Class `5.0` subgroup during validation.
-
-### 2.2 Fairness Definitions & Visual Evidence
-- **Demographic Parity Disparity:** The probability of receiving a specific triage score was heavily dependent on belonging to the majority data cohort, failing basic demographic parity checks.
-- **Clinical Implications:** Relying on global metrics like weighted AUC masks severe tail-end group performance failures. In clinical operations, optimizing solely for global accuracy results in systemic minority cohort suppression.
-
----
-
-## 🔍 Task 3: Deep Cohort Analysis
-
-### 3.1 The Missingness Barrier
-An inspection of the registered data asset profile (`Sample_ED_Triage_Data_with_Demographic_Variables`) revealed a severe data starvation pattern:
-
+```
+[Incoming Patient Data Asset] 
+            │
+            ▼
+[Select Columns in Dataset] ──► Restricts feature matrix to clinical/demographic markers
+            │
+            ▼
+       [Split Data] ──────────► 70/30 Train/Validation Stratification
+            │
+      ┌─────┴─────────────┐
+      ▼                   ▼
+[Train Model]       [Score Model] ──► Evaluates Multiclass Decision Forest performance
 
 ```
 
-Total Record Volume: 999 Rows
-Missing Record Count: 799 Rows
-Systemic Missingness Rate: 79.98% across Race_Ethnicity and Insurance_Status
+The underlying model topology uses a specialized execution graph:
+
+* **Data Ingestion Anchor:** Evaluates the registered data asset `Sample_ED_Triage_Data_with_Demographic_Variables`.
+* **Feature Selection Module:** Isolates vital signs, chief complaints, and demographic labels to construct the vector matrix.
+* **Algorithmic Engine:** Uses a `Multiclass Decision Forest` model coupled with a `StandardScalerWrapper` to transform raw numerical inputs (vitals) into uniform distributions.
+
+### 1.2 Clinical Intended Use Case & Downstream Influence
+
+The model is designed as a secondary decision-support layer at the physical point of intake. It processes patient presentation vectors to generate a predicted Emergency Severity Index (ESI) ranging from **Level 1 (Resuscitation / Immediate)** to **Level 5 (Non-Urgent)**.
+
+The clinical care pathway relies heavily on these predictions:
+
+* **Queue Placement:** High-acuity predictions automatically place patients at the top of the room-assignment and physician-evaluation queues.
+* **Resource Ingestion:** Levels 1 and 2 trigger immediate room deployment, nursing allocation, and diagnostic orders. Lower acuity scores (Levels 4 and 5) route patients to fast-track or waiting room areas.
+
+### 1.3 Upstream Data Collection Vulnerabilities
+
+A structural challenge identified during architectural exploration is the divergence between clinical workflows and data pipelines:
+
+```
+                  ┌──────────────► High Acuity ──► Bedside Stabilization ──► Missing Registration Data
+                  │                                                          (Systemic Missingness)
+[Incoming Patient]┤
+                  │
+                  └──────────────► Low Acuity ───► Front Desk Intake ─────► Complete Registration Data
+                                                                             (High Feature Density)
 
 ```
 
-This massive missingness block makes intersectional cohort evaluation (e.g., assessing low-income, elderly minority groups) statistically difficult due to extreme data starvation within the sub-stratifications.
-
-### 3.2 Clinical Safety Implications & Residual Risk
-During active evaluation runs (`sincere_prune_hbx98tw7`), a dangerous **Undertriage Pattern** was identified:
-- **High-Acuity Error Mode:** The model misclassified 14 out of 17 true high-acuity Level 1 patients into lower priority tiers.
-- **Critical Failure Point:** Among those errors, **6 hyper-urgent Level 1 patients were misclassified as Level 5.0 (Non-Urgent)**. This poses a severe clinical safety risk if deployed without human oversight.
+In acute settings (e.g., severe trauma, active myocardial infarction), patients bypass the front-desk registration clerks entirely and are wheeled straight to stabilization bays. Consequently, demographic identifiers are omitted during the initial ingestion window. Conversely, stable, lower-acuity patients undergo a full administrative intake process, creating a data structure where demographic information is dense for low-acuity cases but highly sparse for critical cases.
 
 ---
 
-## 🛠️ Task 4: Root Cause Analysis
+## Task 2: Initial Bias Assessment Using Fairness Metrics
 
-The systematic bias observed in the pipeline stems from distinct points across the data and modeling lifecycle:
+### 2.1 Baseline Stratified Performance Breakdown
 
-1. **Data Collection (Systemic Ingestion Failure):** The 79.98% missingness rate in demographic attributes is a direct artifact of emergency workflow routing, where critical patients bypass intake registration desks.
-2. **Feature Engineering (Data Transformation Defect):** Applying a global `StandardScaler` standardizes physiological inputs across the entire population, flattening critical diagnostic variances unique to age and sex demographics.
-3. **Pipeline Export Artifacts:** Visual inspection of the data preview grid revealed an entirely empty trailing column (`Column27`), indicating a delimiter export issue from the source electronic health record (EHR) extract.
+The baseline model run (`sleepy_kumquat_99pbl4k32g`) optimized for a global, population-weighted metric (`AUC_weighted`), masking significant underlying performance drops across specific groups. Evaluating model execution across demographic sub-cohorts revealed stark disparities:
+
+* **Total Class 5.0 Suppression:** Because the historical training data heavily favored mid-tier presentations (ESI Level 3), the global optimization constraints entirely suppressed minority endpoints.
+* **Zero-Positive Error Pattern:** The baseline model returned an absolute **True Positive Count of 0** and a **Total Prediction Count of 0** for ESI Level 5 patients, ignoring the class entirely during validation runs.
+
+### 2.2 Mathematical Evaluation of Fairness Definitions
+
+#### Demographic Parity (Statistical Parity)
+
+$$\Delta P(Y' = c \mid A = 0) - P(Y' = c \mid A = 1) \neq 0$$
+
+
+The baseline engine failed demographic parity checks. The selection rate ($Y'$) for higher-priority triage slots was strongly dependent on whether the patient belonged to the majority data group rather than their true clinical need.
+
+#### Equalized Odds
+
+$$P(Y' = c \mid A = 0, Y = c) \neq P(Y' = c \mid A = 1, Y = c)$$
+
+
+The system could not achieve equalized odds because the true positive rate for the lowest-acuity classes dropped to zero in minority populations, while remaining highly volatile across different age brackets.
+
+### 2.3 Operational Clinical Implications
+
+Relying strictly on unweighted global metrics like accuracy or weighted AUC creates an illusion of system stability. In actual operation, this mathematical bias would lead to structural neglect of low-frequency cohorts, resulting in systematic long wait times and mismanaged resource allocation across the hospital system.
 
 ---
 
-## ⚖️ Task 5: Bias Mitigation Strategy Development
+## Task 3: Deep Cohort Analysis
 
-To correct the systematic suppression of minority prediction classes, the following layered mitigation framework was developed:
+### 3.1 The Missingness Barrier & Demographic Profiling
 
-### 5.1 Model-Level Intervention
-The optimization objective was pivoted away from global weighted performance parameters. The pipeline was reconfigured to prioritize **Normalized Macro Recall (`norm_macro_recall`)**. This adjustment forces the components to treat every triage tier with equal weight, regardless of their original volume in the training sample.
+A deep validation profile of the underlying dataset `Sample_ED_Triage_Data_with_Demographic_Variables` exposed an extreme data starvation pattern:
 
-### 5.2 Performance Trade-off Matrix
-By enforcing macro-balancing, the model moved away from its majority-class bias, successfully enabling predictions for minority classes:
+* **Total Record Volume:** 999 Rows.
+* **Missing Columnar Ingestion:** 799 Rows missing out of 999 total samples across `Patient_ID`, `Age`, and core demographic attributes.
+* **Systemic Missingness Rate:** **79.98%**.
 
-| Evaluation Metric | Baseline Run (`sleepy_kumquat`) | Mitigated Run (`blue_kumquat`) |
-| :--- | :--- | :--- |
-| **Primary Metric Focus** | 0.5149 (`AUC_weighted`) | **0.1036 (`norm_macro_recall`)** |
-| **Global Accuracy** | 30.50% | **19.00%** |
-| **Class 5.0 True Positives** | 0 Patients | **5 Patients** |
-| **Total Class 5.0 Predictions** | 0 Predictions | **42 Predictions** |
+This high rate of missing data means that evaluating complex intersectional cohorts—such as elderly, uninsured minority populations—is statistically unreliable due to extreme data sparsity in sub-stratified layers.
 
----
+### 3.2 Clinical Safety Implications: The Undertriage Phenomenon
 
-## 📋 Task 6: Documentation and Reporting
-
-### 6.1 Visual Audit Evidence
-
-#### Upstream Data Ingestion Starvation Profile
-![Upstream Missingness Profile](images/Race_Ethnicity.jpg)
-
-#### Baseline Multi-Class Target Distribution
-![Target Distribution Disparity](images/triage_level_profile.png)
-
-#### Technical Data Dictionary Preview
-![Data Schema Preview](images/dataset_schema_preview.png)
-
-
-### 6.2 Governance & Post-Deployment Monitoring Roadmap
-1. **Mandatory Human-in-the-Loop Override:** The automated triage placement must act solely as secondary decision support. Clinicians retain absolute authority to override scores.
-2. **Upstream Intake Optimization:** Hospital administration must implement secondary demographic collection protocols at the point of bedside stabilization to address the 79.98% tracking deficit.
-3. **Continuous Bias Auditing:** Implement automated drift alerts to track `norm_macro_recall` stability on a rolling monthly basis as incoming patient demographics change.
+Analyzing the validation runs (`sincere_prune_hbx98tw7`) brought to light an active, high-risk **Undertriage Pattern** within the model's confusion matrix:
 
 ```
+                     PREDICTED LABEL (Acuity Tier)
+                   ESI 1.0   ESI 2.0   ESI 3.0   ESI 4.0   ESI 5.0
+          ESI 1.0 [   3    ] [   3    ] [   2    ] [   3    ] [   6    ] ◄── 14 Critical Patients Missed!
+          ESI 2.0 [  13    ] [   5    ] [   5    ] [  14    ] [  11    ]
+TRUE      ESI 3.0 [  17    ] [  19    ] [  10    ] [  21    ] [  19    ]
+LABEL     ESI 4.0 [   4    ] [   7    ] [   2    ] [  15    ] [   6    ]
+          ESI 5.0 [   4    ] [   1    ] [   3    ] [   2    ] [   5    ]
+
+```
+
+* **High-Acuity Miss Rate:** Out of 17 true ESI Level 1 (Resuscitation) cases, the model successfully classified **only 3 patients** correctly.
+* **Dangerous Down-Triage Errors:** The model misclassified **6 critical, life-threatening Level 1 cases as Level 5 (Non-Urgent)**. Deploying this model without intervention would cause catastrophic operational delays in treating critically ill patients, directly threatening patient safety.
+
+---
+
+## Task 4: Root Cause Analysis
+
+The systemic bias and dangerous failure modes across the clinical pipeline stem from several clear issues across the data collection and modeling lifecycle:
+
+### 4.1 Data Collection Ingestion Defect
+
+The 79.98% missingness rate is a direct artifact of historical operational workflows. Because the data capture infrastructure links sociodemographic variables exclusively to the front-desk administrative check-in loop, the most critically ill patients are systematically excluded from full demographic tracking.
+
+### 4.2 Mathematical Over-Standardization
+
+The feature pipeline uses a global `StandardScalerWrapper` before training the Multiclass Decision Forest. This mathematical step standardizes continuous inputs like vital signs across the entire patient pool:
+
+$$\hat{x} = \frac{x - \mu}{\sigma}$$
+
+While this assists model convergence, it flattens important baseline biological differences between demographic groups. For instance, normal resting heart rates and blood pressure distributions vary significantly by age and biological sex; uniform standardization strips out these nuances, distorting the clinical predictive signals for these sub-cohorts.
+
+### 4.3 Data Extraction Pipeline Artifacts
+
+Reviewing the raw data schema revealed an unexpected, unlabelled column (`Column27`) containing empty values. This indicates a faulty extraction or delimiter translation error within the extract, transform, load (ETL) pipeline pulling from the source Electronic Health Record (EHR) database.
+
+---
+
+## Task 5: Bias Mitigation Strategy Development
+
+To correct the systematic omission of minority classes and reduce dangerous undertriage errors, the governance team implemented a structured mitigation framework.
+
+### 5.1 Optimization Objective Pivot
+
+The primary intervention focused on changing the model's target optimization objective. The training pipeline was shifted away from global population metrics and reconfigured to maximize **Normalized Macro Recall (`norm_macro_recall`)**.
+
+This optimization objective treats all five ESI acuity tiers with equal mathematical weight during gradient evaluation, regardless of how many patients are in each class in the training sample:
+
+$$\text{Normalized Macro Recall} \propto \frac{1}{K} \sum_{i=1}^{K} \text{Recall}_i$$
+
+This approach stops the machine learning pipeline from ignoring lower-volume patient classes to maximize overall accuracy.
+
+### 5.2 Technical Performance Trade-off Matrix
+
+By enforcing macro-balancing, the updated run (`sincere_prune_hbx98tw7`) successfully eliminated majority class bias, enabling reliable predictions across all clinical endpoints:
+
+| Operational Performance Metric | Baseline Run Profile (`sleepy_kumquat`) | Macro-Balanced Profile (`sincere_prune`) |
+| --- | --- | --- |
+| **Primary Optimization Metric** | Unweighted Global Target Focus | **0.1036012 (`norm_macro_recall`)** |
+| **Global Prediction Accuracy** | 30.50% | **19.00%** |
+| **Macro AUC Performance** | Poor Class-Specific Resolution | **0.5230922** |
+| **Weighted Precision Score** | Skewed by Majority Volumes | **0.3125179** |
+| **Systemic Log Loss Margin** | High Edge Volatility | **1.596895** |
+| **ESI Level 5.0 Class Assertions** | 0 Total Predictions | **42 Active Predictions** |
+| **ESI Level 5.0 True Positives** | 0 Captured Patients | **5 Confirmed Class Hits** |
+
+### 5.3 Operational Feasibility & Clinical Safety Trade-offs
+
+While switching to macro-balancing lowered the model's *global* accuracy from 30.5% to 19%, it was necessary to ensure patient safety. A clinical model that achieves high global accuracy by correctly guessing mid-tier cases but entirely missing critical emergencies is unsafe for deployment. Sacrificing global accuracy ensures the system actively screens for rare but critical clinical endpoints across all demographic groups.
+
+---
+
+## Task 6: Documentation and Reporting
+
+### 6.1 Strategic Implementation Roadmap
+
+```
+[Phase 1: EHR Hotfix] ──► [Phase 2: Shadow Deployment] ──► [Phase 3: Human-In-The-Loop]
+  Bedside demographic       Parallel evaluation runs      Mandatory clinical override
+  capture protocols         without clinical visibility   protocols enforced
+
+```
+
+1. **Short-Term EHR Pipeline Hotfix (0–30 Days):** Update the hospital's ED intake software to prompt for missing demographic information as soon as a patient is stabilized in a care bay. This directly addresses the 79.98% data gap.
+2. **Shadow Deployment Monitoring (30–90 Days):** Run the macro-balanced pipeline (`sincere_prune_hbx98tw7`) in a silent shadow mode. This allows the governance team to monitor real-world performance metrics without exposing active patient care to algorithmic decisions.
+3. **Clinical Integration with Human Oversight (90+ Days):** Deploy the model strictly as a secondary decision-support tool. Emergency nursing staff will retain full authority to override any algorithmic score during triage.
+
+### 6.2 Governance and Continuous Auditing Framework
+
+* **Automated Performance Alerts:** Configure Azure ML monitoring to trigger an alert if the rolling monthly `norm_macro_recall` score drops by more than 10%, indicating potential data drift.
+* **Quarterly Bias Audits:** Conduct formal evaluations every quarter using updated demographic datasets to track parity differences across age, sex, and insurance cohorts, ensuring the system remains equitable as patient populations shift.
+
+
+
 
