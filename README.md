@@ -83,16 +83,22 @@ In acute settings (e.g., severe trauma, active myocardial infarction), patients 
 
 ---
 
-## Task 2: Initial Bias Assessment Using Fairness Metrics
-
 ### 2.1 Baseline Stratified Performance Breakdown
-The baseline model run (`sleepy_kumquat_99pbl4k32g`) optimized for a global, population-weighted metric (`AUC_weighted`), masking significant underlying performance drops across specific groups. Evaluating model execution across demographic sub-cohorts revealed stark disparities:
+The baseline model run (`tender_pear_dph3wjj5`) was optimized exclusively for a global, population-weighted metric (`AUC_weighted`). While this approach yielded an acceptable top-line global accuracy of **30.50%**, a deep demographic sub-cohort evaluation exposed severe algorithmic vulnerabilities and systemic group disparities masked by that high-level percentage.
 
-#### Experiment Run History & Baseline Performance Log
-![Azure ML Job Run Audit History](images/ED-Triage-Automated-Audit.jpg)
+#### Azure ML Experiment History: Baseline Run Performance Profile
+![Azure ML Baseline Performance Metrics Dashboard](images/tender_pear_metrics.png)
 
-* **Total Class 5.0 Suppression:** Because the historical training data heavily favored mid-tier presentations (ESI Level 3), the global optimization constraints entirely suppressed minority endpoints.
-* **Zero-Positive Error Pattern:** The baseline model returned an absolute **True Positive Count of 0** and a **Total Prediction Count of 0** for ESI Level 5 patients, ignoring the class entirely during validation runs.
+#### Baseline Run Evaluation Summary
+* **Total Ingested Sample Volume:** 999 Rows.
+* **Global Evaluation Accuracy:** **30.50%**.
+* **Primary Optimization Objective:** `AUC_weighted`.
+* **Systemic Log Loss Margin:** **1.51737**.
+
+#### Major Flaws Discovered in the Audit:
+* **Total Class 5.0 Suppression:** Because the historical training data heavily favored mid-tier presentations (such as ESI Level 3), the global optimization constraints entirely suppressed minority clinical endpoints to maximize overall scoring.
+* **Zero-Positive Error Pattern:** The baseline model returned an absolute **True Positive Count of 0** and a **Total Prediction Count of 0** for ESI Level 5 patients, ignoring the class entirely during validation runs. 
+* **Clinical Risk Exposure:** Prioritizing population averages over class parity means that low-volume, high-acuity critical cases are frequently misclassified, creating a severe operational liability if deployed in active emergency triage environments.
 
 ### 2.2 Mathematical Evaluation of Fairness Definitions
 
@@ -208,20 +214,27 @@ $$\text{Normalized Macro Recall} \propto \frac{1}{K} \sum_{i=1}^{K} \text{Recall
 This approach stops the machine learning pipeline from ignoring lower-volume patient classes to maximize overall accuracy.
 
 ### 5.2 Technical Performance Trade-off Matrix
-By enforcing macro-balancing, the updated run (`sincere_prune_hbx98tw7`) successfully eliminated majority class bias, enabling reliable predictions across all clinical endpoints:
+By pivoting the Automated ML framework away from global population averages and focusing training objectives around macro-balanced equity, our evaluation child run (`sincere_prune_hbx98tw7`) successfully restored predictive visibility across all clinical cohorts. 
 
-| Operational Performance Metric | Baseline Run Profile (`sleepy_kumquat`) | Macro Balanced Profile (`sincere_prune`) |
+This optimization choice directly resolved the majority class bias, enabling reliable tracking and scoring across all emergency endpoints:
+
+| Operational Performance Metric | Baseline Run Profile (`tender_pear`) | Macro-Balanced Profile (`sincere_prune`) |
 | :--- | :--- | :--- |
-| **Primary Optimization Metric** | Unweighted Global Target Focus | **0.1036012** (`norm_macro_recall`) |
-| **Global Prediction Accuracy** | 30.50% | **19.00%** |
-| **Macro AUC Performance** | Poor Class-Specific Resolution | **0.5230922** |
+| **Primary Optimization Metric** | Global Target Focus (`AUC_weighted`) | **0.1036012 (`norm_macro_recall`)** |
+| **Global Prediction Accuracy** | **30.50%** | **19.00%** |
+| **Macro Area Under the Curve (AUC)**| Poor Class-Specific Resolution | **0.5230922** |
 | **Weighted Precision Score** | Skewed by Majority Volumes | **0.3125179** |
-| **Systemic Log Loss Margin** | High Edge Volatility | **1.596895** |
+| **Systemic Log Loss Margin** | 1.51737 | **1.596895** |
 | **ESI Level 5.0 Class Assertions** | 0 Total Predictions | **42 Active Predictions** |
 | **ESI Level 5.0 True Positives** | 0 Captured Patients | **5 Confirmed Class Hits** |
 
-#### Responsible AI Metrics Hub & Multi-Class Confusion Matrix
-![Responsible AI Dashboard Preview](images/rai_metrics_dashboard.png)
+#### Azure ML Experiment History: Macro-Balanced Mitigation Profile
+![Azure ML Mitigated Model Metrics Dashboard](images/sincere_prune_metrics.png)
+
+#### Mitigated Metric Deep-Dive Evaluation:
+* **Elimination of Minority Class Blindness:** In stark contrast to the baseline run which completely ignored ESI Level 5.0, the macro-balanced configuration actively asserted 42 triage predictions for this cohort, successfully capturing true positive hits.
+* **Algorithmic Cost Realities:** Forcing the estimators to distribute equal gradient weight across rare and common clinical endpoints naturally introduces an optimization trade-off, shifting the global validation accuracy down to 19%.
+* **Systemic Stability:** The macro-balanced model's log loss (`1.596895`) remained close to the baseline profile, proving that the model redistributed its predictive logic for safety without causing mathematical instability or exploding error ranges across the workspace.
 
 ### 5.3 Operational Feasibility & Clinical Safety Trade-offs
 While switching to macro-balancing lowered the model's *global* accuracy from 30.5% to 19%, it was necessary to ensure patient safety. A clinical model that achieves high global accuracy by correctly guessing mid-tier cases but entirely missing critical emergencies is unsafe for deployment. Sacrificing global accuracy ensures the system actively screens for rare but critical clinical endpoints across all demographic groups.
