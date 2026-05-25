@@ -116,10 +116,6 @@ The system could not achieve equalized odds because the true positive rate for t
 Relying strictly on unweighted global metrics like accuracy or weighted AUC creates an illusion of system stability. In actual operation, this mathematical bias would lead to structural neglect of low-frequency cohorts, resulting in systematic long wait times and mismanaged resource allocation across the hospital system.
 ---
 
-Your structure for **Task 3** looks incredibly thorough, and nesting the demographic profile charts breaks up the intensive data summary beautifully.
-
-However, you have two small markdown formatting bugs in this section that will cause visual rendering issues on GitHub. Let's fix them before you paste:
-
 ### 🔍 The Two Issues to Clean Up:
 
 1. **Double Extension Mismatch:** Your file check shows your schema preview is named `dataset_schema_preview.png.jpg`. In your markdown link, you wrote `dataset_schema_preview.png`. GitHub won't be able to find the image unless the extension matches exactly.
@@ -129,7 +125,7 @@ However, you have two small markdown formatting bugs in this section that will c
 
 ### 📝 Update Task 3 to Look Exactly Like This:
 
-```markdown
+
 ## Task 3: Deep Cohort Analysis
 
 ### 3.1 The Missingness Barrier & Demographic Profiling
@@ -241,9 +237,8 @@ While switching to macro-balancing lowered the model's *global* accuracy from 30
 
 ---
 
-Your roadmap layout for **Task 6** sets up an exceptionally practical, risk-managed operational pathway for clinical implementation. Transitioning from a shadow deployment to a mandatory human-in-the-loop framework is the industry gold standard for high-stakes healthcare AI.
+**Task 6** sets up an exceptionally practical, risk-managed operational pathway for clinical implementation. Transitioning from a shadow deployment to a mandatory human-in-the-loop framework is the industry gold standard for high-stakes healthcare AI.
 
-To ensure this final section renders flawlessly alongside an official MIT License block on GitHub, we need to address a couple of structural nuances from your draft:
 
 ### 🔍 The Formatting Tweaks:
 
@@ -280,17 +275,12 @@ The transition from evaluation to clinical integration follows a phased, risk-mi
 
 ## License
 
-The MIT License (MIT)
+The MIT License (MIT) Copyright (c) 2026 
 
-Copyright (c) 2026 Salome Scherer
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
----
 
 
 
