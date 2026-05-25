@@ -1,0 +1,16 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+code: src
+command: >-
+  python train.py 
+  --input_data ${{inputs.training_data}}
+inputs:
+  training_data:
+    type: mltable
+    path: azureml:Sample_ED_Triage_Data_with_Demographic_Variables:1
+compute: azureml:SalomeScherer1
+environment: azureml:AzureML-AutoML@latest
+experiment_name: ED-Triage-Automated-Audit
+description: "Macro-balanced Automated ML run for ED Triage equity audit optimizing for normalized macro recall."
+tags:
+  run_algorithm: "LightGBM;XGBoostClassifier;RandomForest;VotingEnsemble"
+  run_preprocessor: "MaxAbsScaler;MaxAbsScaler;StandardScalerWrapper"
